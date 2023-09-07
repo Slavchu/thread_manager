@@ -3,10 +3,11 @@
 #include <mutex>
 #include <chrono>
 #include <algorithm>
-thread_manager* thread_manager::thread_manager_ptr = nullptr;
+
+ThreadManager* ThreadManager::thread_manager_ptr = nullptr;
 std::mutex q_mutex;
 std::mutex thread_counter_mutex;
-thread_manager::thread_manager(){
+ThreadManager::ThreadManager(){
       if(!thread_manager_ptr){
             thread_manager_ptr = this;
             sys_threads = std::thread::hardware_concurrency(); 
@@ -15,11 +16,16 @@ thread_manager::thread_manager(){
       else
             delete this;
 }
-void thread_manager::function_caller(){
+void ThreadManager::function_caller(){
+      IFunct* task;
+
       while(!end_of_thread){
-            q_mutex.lock();
             
-            while(functionQ.empty() && !end_of_thread){
+            while(1){
+                  q_mutex.lock();
+                  if(!functionQ.empty() && end_of_thread)
+                  break;
+                  q_mutex.unlock();
                   std::this_thread::sleep_for(std::chrono::milliseconds(1));       
             }
             if(end_of_thread){
@@ -28,7 +34,7 @@ void thread_manager::function_caller(){
                   
             }
             
-            IFunct* task = functionQ.front();
+            task = functionQ.front();
             functionQ.pop(); 
             q_mutex.unlock();
             
@@ -36,29 +42,29 @@ void thread_manager::function_caller(){
 
             task->callFunction();
             task->onTaskEnd();
-          
+            delete task;
       }
       thread_counter_mutex.lock();
       working_threads--;
       thread_counter_mutex.unlock();
 }
-void thread_manager::add_function(IFunct *funct){
+void ThreadManager::add_function(IFunct *funct){
       q_mutex.lock();
       if(funct == nullptr) throw -1;
       functionQ.push (funct);
       q_mutex.unlock();
 }
-void thread_manager::start_work(){
+void ThreadManager::start_work(){
       if(!threads.empty()) return;
       
       for(int i = 0; i < sys_threads; i++){
-            threads.push_back(std::thread(&thread_manager::function_caller, thread_manager::thread_manager_ptr));
+            threads.push_back(std::thread(&ThreadManager::function_caller, ThreadManager::thread_manager_ptr));
             threads[i].detach();
       }
       
       
 }
-thread_manager::~thread_manager(){
+ThreadManager::~ThreadManager(){
       if(thread_manager_ptr == this){
             end_of_thread = true;
             while(working_threads){
@@ -67,6 +73,6 @@ thread_manager::~thread_manager(){
             thread_manager_ptr = nullptr;
       }     
 }
-bool thread_manager::has_work() const{
+bool ThreadManager::has_work() const{
       return !functionQ.empty();
 }

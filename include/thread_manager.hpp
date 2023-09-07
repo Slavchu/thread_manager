@@ -10,10 +10,10 @@ class IFunct{
 };
 
 
-class thread_manager{
+class ThreadManager{
 
 private:
-    static thread_manager * thread_manager_ptr;
+    static ThreadManager * thread_manager_ptr;
     unsigned short sys_threads;
     std::queue<IFunct*> functionQ;
     void function_caller();
@@ -23,8 +23,8 @@ private:
     
 public:
     void add_function(IFunct * function);
-    thread_manager();
+    ThreadManager();
     void start_work();
     bool has_work() const;
-    ~thread_manager();
+    ~ThreadManager();
 };
