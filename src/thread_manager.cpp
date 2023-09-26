@@ -23,7 +23,7 @@ void ThreadManager::function_caller(){
             
             while(1){
                   q_mutex.lock();
-                  if(!functionQ.empty() && end_of_thread)
+                  if(!functionQ.empty() || end_of_thread)
                   break;
                   q_mutex.unlock();
                   std::this_thread::sleep_for(std::chrono::milliseconds(1));       
